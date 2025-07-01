@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:focus_list/constants/app_config.dart';
+import 'package:focus_list/features/tasks/cubits/missed_tasks_cubit.dart';
 import '../../../constants/app_sizes.dart';
 import '../cubits/active_tasks_cubit.dart';
 import '../models/task.dart';
@@ -18,7 +19,7 @@ class _TaskScreenState extends State<TaskScreen> {
   final _formKey = GlobalKey<FormState>();
   late final TextEditingController _titleController;
 
-  int _minutes = TaskConfig.defaultMinutes;
+  int _minutes = AppConfig.taskDefaultMinutes;
 
   @override
   void initState() {
@@ -29,7 +30,7 @@ class _TaskScreenState extends State<TaskScreen> {
     if (task != null) {
       final duration = task.deadline.difference(task.createdAt);
       _minutes = duration.inMinutes
-          .clamp(TaskConfig.minMinutes, TaskConfig.maxMinutes);
+          .clamp(AppConfig.taskMinMinutes, AppConfig.taskMaxMinutes);
     }
   }
 
@@ -42,22 +43,27 @@ class _TaskScreenState extends State<TaskScreen> {
   void _submit() {
     if (_formKey.currentState?.validate() ?? false) {
       final isEditing = widget.existingTask != null;
-      final createdAt =
-          isEditing ? widget.existingTask!.createdAt : DateTime.now();
+      final isRescheduling = widget.existingTask?.status == TaskStatus.missed;
+
+      final createdAt = DateTime.now();
       final id = isEditing
           ? widget.existingTask!.id
           : DateTime.now().millisecondsSinceEpoch.toString();
 
       final newTask = Task(
-          id: id,
-          title: _titleController.text.trim(),
-          createdAt: createdAt,
-          deadline: createdAt.add(Duration(minutes: _minutes)),
-          status: isEditing ? widget.existingTask!.status : TaskStatus.active);
+        id: id,
+        title: _titleController.text.trim(),
+        createdAt: createdAt,
+        deadline: createdAt.add(Duration(minutes: _minutes)),
+        status: TaskStatus.active,
+      );
 
       final activeCubit = context.read<ActiveTasksCubit>();
 
-      if (isEditing) {
+      if (isRescheduling) {
+        context.read<MissedTasksCubit>().removeTask(widget.existingTask!);
+        activeCubit.addTask(newTask);
+      } else if (isEditing) {
         activeCubit.editTask(newTask);
       } else {
         activeCubit.addTask(newTask);
@@ -91,9 +97,9 @@ class _TaskScreenState extends State<TaskScreen> {
               AppSizes.verticalSpaceLarge,
               Text('Time limit (minutes): $_minutes'),
               Slider(
-                min: TaskConfig.minMinutes.toDouble(),
-                max: TaskConfig.maxMinutes.toDouble(),
-                divisions: TaskConfig.maxMinutes,
+                min: AppConfig.taskMinMinutes.toDouble(),
+                max: AppConfig.taskMaxMinutes.toDouble(),
+                divisions: AppConfig.taskMaxMinutes,
                 value: _minutes.toDouble(),
                 label: _minutes.toString(),
                 onChanged: (value) => setState(() => _minutes = value.toInt()),

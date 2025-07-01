@@ -1,41 +1,51 @@
 import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:focus_list/features/tasks/interfaces/task_cubit_interface.dart';
+import 'package:hive/hive.dart';
 import '../models/task.dart';
 import 'missed_tasks_cubit.dart';
 import 'completed_tasks_cubit.dart';
 
-class ActiveTasksCubit extends Cubit<List<Task>> {
+class ActiveTasksCubit extends Cubit<List<Task>> implements TaskCubitInterface {
   final MissedTasksCubit missedTasksCubit;
   final CompletedTasksCubit completedTasksCubit;
+  final Box<Task> box;
 
   Timer? _timer;
 
   ActiveTasksCubit(
-      {required this.missedTasksCubit, required this.completedTasksCubit})
-      : super([]) {
+      {required this.missedTasksCubit,
+      required this.completedTasksCubit,
+      required this.box})
+      : super(box.values.toList()) {
     _startTimerIfNeeded();
   }
 
-  void addTask(Task task) {
+  @override
+  Future<void> addTask(Task task) async {
+    await box.put(task.id, task);
     emit([...state, task]);
     _startTimerIfNeeded();
   }
 
-  void editTask(Task updatedTask) {
-    final updatedList =
-        state.map((t) => t.id == updatedTask.id ? updatedTask : t).toList();
-    emit(updatedList);
+  @override
+  Future<void> editTask(Task updatedTask) async {
+    await box.put(updatedTask.id, updatedTask);
+    emit(box.values.toList());
   }
 
-  void removeTask(Task task) {
-    emit(state.where((t) => t.id != task.id).toList());
+  @override
+  Future<void> removeTask(Task task) async {
+    await box.delete(task.id);
+    emit(box.values.toList());
     _stopTimerIfNeeded();
   }
 
-  void markAsDone(Task task) {
-    removeTask(task);
-    completedTasksCubit.addTask(task.copyWith(status: TaskStatus.completed));
+  Future<void> markAsDone(Task task) async {
+    await removeTask(task);
+    final completedTask = task.copyWith(status: TaskStatus.completed);
+    await completedTasksCubit.addTask(completedTask);
   }
 
   void _startTimerIfNeeded() {
@@ -52,31 +62,35 @@ class ActiveTasksCubit extends Cubit<List<Task>> {
     }
   }
 
-  void _onTick() {
+  void _onTick() async {
     final now = DateTime.now();
-    final List<Task> stillActive = [];
-    final List<Task> justMissed = [];
 
-    for (var task in state) {
-      if (task.deadline.isBefore(now) && task.status == TaskStatus.active) {
-        justMissed.add(task.copyWith(status: TaskStatus.missed));
-      } else {
-        stillActive.add(task);
+    final expired = state
+        .where((t) => t.status == TaskStatus.active && t.deadline.isBefore(now))
+        .toList();
+
+    if (expired.isNotEmpty) {
+      // Skapa nya Missed-tasks
+      final missedTasks =
+          expired.map((t) => t.copyWith(status: TaskStatus.missed)).toList();
+
+      // Uppdatera Hive: ta bort från activeBox
+      await box.deleteAll(expired.map((t) => t.id));
+
+      // Lägg till i MissedTasksCubit (sparas till Hive där)
+      for (var missed in missedTasks) {
+        await missedTasksCubit.addTask(missed);
       }
-    }
 
-    if (justMissed.isNotEmpty) {
-      // Remove missed tasks from active and add to missed cubit
+      // Uppdatera state
+      final stillActive = state.where((t) => !expired.contains(t)).toList();
+
       emit(stillActive);
-      for (var missed in justMissed) {
-        missedTasksCubit.addTask(missed);
-      }
     } else {
-      // No tasks expired this tick — emit same list to update UI timers
+      // Uppdatera UI med samma state så timern tickar visuellt
       emit(List.from(state));
     }
 
-    // Stop timer if no active tasks
     _stopTimerIfNeeded();
   }
 

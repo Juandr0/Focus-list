@@ -10,8 +10,6 @@ extension TaskStatusColor on TaskStatus {
         return Colors.grey;
       case TaskStatus.missed:
         return Colors.red;
-      case TaskStatus.paused:
-        return Colors.white;
     }
   }
 }

@@ -1,10 +1,31 @@
-enum TaskStatus { active, completed, missed, paused }
+import 'package:hive/hive.dart';
+part 'task.g.dart';
 
+@HiveType(typeId: 0)
+enum TaskStatus {
+  @HiveField(0)
+  active,
+  @HiveField(1)
+  completed,
+  @HiveField(2)
+  missed
+}
+
+@HiveType(typeId: 1)
 class Task {
+  @HiveField(0)
   String id;
+
+  @HiveField(1)
   String title;
+
+  @HiveField(2)
   DateTime createdAt;
+
+  @HiveField(3)
   DateTime deadline;
+
+  @HiveField(4)
   TaskStatus status;
 
   Task({
