@@ -49,3 +49,9 @@ Appen använder Cubit för state management och Hive för datahantering.
 
    ```bash
    flutter run
+
+## Screenshots
+<p float="left">
+  <img src="https://github.com/user-attachments/assets/1bfc4ebd-93ba-4abc-a885-37ddf31fdd66" width="45%" style="margin-right: 10px;">
+  <img src="https://github.com/user-attachments/assets/bd014dd8-506d-410a-99e5-13affcdb0cec" width="45%">
+</p>
