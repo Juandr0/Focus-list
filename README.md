@@ -34,7 +34,6 @@ Appen använder Cubit för state management och Hive för datahantering.
    ```bash
    cd Focus-list
 
-
 3. Installera dependencies:
 
    ```bash
