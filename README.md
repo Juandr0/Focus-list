@@ -8,7 +8,7 @@ Appen använder Cubit för state management och Hive för datahantering.
 
 ## Funktioner
 
-- Skapa uppgifter med titel och tidsgräns (5–60 minuter)  
+- Skapa uppgifter med titel och tidsgräns (1–60 minuter)  
 - Visa tre sektioner på startsidan:  
   - Active Tasks (pågående)  
   - Completed Tasks (avslutade manuellt)  
@@ -17,7 +17,7 @@ Appen använder Cubit för state management och Hive för datahantering.
 - Uppgifter flyttas automatiskt till Missed när tiden löper ut  
 - Redigera och schemalägg om missade uppgifter  
 - Lokal datalagring med Hive för snabb återställning vid appstart  
-- Ren och strukturerad kod med Cubit och Hive
+- Ren och strukturerad kod med Cubit och Hive som är organiserad med feature-baserad arkitektur
 - Appen hanterar tidsgränser lokalt och räknar ned även när appen är stängd, baserat på tidsstämplar.
 
 ---
